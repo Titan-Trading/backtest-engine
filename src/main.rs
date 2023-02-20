@@ -3,6 +3,7 @@ use rustyline::Editor;
 
 // bring modules into scope
 mod utils;
+mod models;
 mod commands;
 mod threads;
 mod plugins;
