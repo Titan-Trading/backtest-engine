@@ -1,0 +1,2 @@
+datasets_path=datasets
+strategies_path=strategies
