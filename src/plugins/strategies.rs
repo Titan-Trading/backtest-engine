@@ -1,5 +1,9 @@
 use std::{io::{Error, Read}, fs, collections::HashMap};
 
+use rlua::Lua;
+
+use crate::models::{Order, Metric};
+
 use super::datasets::Dataset;
 
 #[derive(Clone)]
@@ -21,6 +25,16 @@ impl Strategy {
     pub fn run(&self, datasets: Vec<Dataset>) {
         println!("running strategy: {}", self.name);
     }
+}
+
+pub struct StrategySandbox {
+    pub name: String,
+    pub lua_context: Lua,
+    pub settings: HashMap<String, String>,
+    pub datasets: HashMap<String, Dataset>,
+    pub completed_orders: Vec<Order>,
+    pub pending_orders: Vec<Order>,
+    pub metrics: Option<Vec<Metric<()>>>,
 }
 
 // loads all strategies from the filesystem using the given path
