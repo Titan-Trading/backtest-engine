@@ -1,28 +1,69 @@
 use std::{io::{Error, Read}, fs, collections::HashMap};
 
-use super::datasets::Dataset;
+use rlua::Lua;
 
+use crate::datasets::Dataset;
+
+// use super::datasets::Dataset;
+
+// holds details about an available indicator plugin
 #[derive(Clone)]
-pub struct Indicator {
+pub struct IndicatorPlugin {
     pub name: String,
     pub lua_script: String,
 }
-
-impl Indicator {
-    pub fn new(name: String, lua_script: String) -> Indicator {
-        Indicator {
+impl IndicatorPlugin {
+    pub fn new(name: String, lua_script: String) -> IndicatorPlugin {
+        IndicatorPlugin {
             name: name,
             lua_script: lua_script,
         }
     }
+}
 
-    pub fn run(&self, datasets: Vec<Dataset>) {
-        println!("running indicator: {}", self.name);
+// an instance of a indicator that has been started
+pub struct Indicator {
+    pub name: String,
+    pub lua_state: Lua,
+    pub settings: HashMap<String, String>,
+    pub datasets: HashMap<String, Dataset>,
+}
+
+impl Indicator {
+    pub fn new(
+        name: String,
+        settings: HashMap<String, String>,
+        datasets: HashMap<String, Dataset>,
+        // metrics: Option<Vec<Metric<()>>>,
+    ) -> Indicator {
+
+        // setup wrapper to control method calls from Rust into LUA or vice versa
+        let lua = Lua::new();
+
+        // verify that the lua script has the required functions
+        // start up lua context
+        // extract the settings required from the LUA script
+        // verify the required settings match up with the supplied settings from settings.txt
+        // perform initialization tests (run through some dummy data to see how the script responds)
+        // prepare synchronized datasets (by timestamp)
+
+        Indicator {
+            name: name,
+            lua_state: lua,
+            settings: settings,
+            datasets
+        }
+    }
+
+    // 
+    pub fn update(&self,) {
+        println!("updating indicator: {}", self.name);
     }
 }
 
+
 // loads all indicators from the filesystem using the given path
-pub fn load_indicators(indicators_path: String) -> Result<HashMap<String, Indicator>, Error> {
+pub fn load_indicators(indicators_path: String) -> Result<HashMap<String, IndicatorPlugin>, Error> {
     let mut indicators = HashMap::new();
     for entry in fs::read_dir(&indicators_path)? {
         let entry = entry?;
@@ -37,10 +78,11 @@ pub fn load_indicators(indicators_path: String) -> Result<HashMap<String, Indica
             let mut lua_contents = String::new();
             file.read_to_string(&mut lua_contents).unwrap();
 
-            let indicator = Indicator::new(indicator_name.clone(), lua_contents);
+            let indicator = IndicatorPlugin::new(indicator_name.clone(), lua_contents);
 
             indicators.insert(indicator_name, indicator);
         }
     }
+
     Ok(indicators)
 }

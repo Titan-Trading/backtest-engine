@@ -1,67 +1,31 @@
-use commands::{Command, handle_command};
-use rustyline::Editor;
 
-// bring modules into scope
-mod utils;
-mod models;
-mod commands;
-mod threads;
-mod plugins;
-mod system;
+// since we now have a filesystem
+// with our own database file format
+// we can create a custom database for accessing our market data from our filesystem
+// our queries are all exclusive
+// - the query will fail if there's no market data for a given exchange/symbol combination
+// -- we want to take care not to load any data that cannot be sync'd as this whole database if for backtesting strategies
+// -- we would rather the system fail than have a strategy run with bad data
+// -- we can always add more data later
+// - our queries consist of a limit of bars, start_time, end_time, intervals, symbols, and exchanges
+// -- this is a very powerful query system because it allows us to get exactly what we need in the format we need it
+// - we can perform optimizations behind the scenes to speed up the system
+// - we can use multi-threading and specific seek/read optimizations to speed up the system
 
 fn main() {
-    // Get the path to the config file from the command line
-    let config_path = std::env::args().nth(1).unwrap_or("config.txt".to_string());
 
-    // Read the config file into a Config struct
-    let config = utils::read_config(config_path);
+    // // generate custom query to database
+    // let query = Query::new()
+    //     .with_limit(100)
+    //     .with_start_time(1598918400000)
+    //     .with_end_time(1599004800000)
+    //     .with_intervals(["5m", "15m", "1h", "4h", "1d"])
+    //     .with_symbols(["BTC-USDT", "ETH-USDT", "LTC-USDT", "XRP-USDT"])
+    //     .with_exchanges([Exchange::Binance, Exchange::Bitfinex, Exchange::Bitstamp, Exchange::Bittrex, Exchange::Coinbase, Exchange::Kraken, Exchange::Poloniex]);
 
-    // create a REPL editor using rustyline
-    let mut rl = Editor::<()>::new().unwrap();
+    // // create a new database client
+    // let mut client = Client::new();
 
-    // load REPL history
-    if rl.load_history("./.engine-history.txt").is_err() {
-        println!("No history found");
-    }
-
-    // Print the welcome message
-    println!("-----------------------------------------------------------------");
-    println!("Trade Engine version 0.1 (type 'exit' to quit or 'help' for help)");
-    println!("-----------------------------------------------------------------");
-
-    // create a core system
-    let mut core = system::Core::new(&config.clone());
-
-    // initialize the system by load plugins
-    core.initialize();
-
-    // update loop
-    loop {
-        // output a prompt and wait for input
-        let input = rl.readline("engine> ");
-
-        // handle the result
-        match input {
-            Ok(line) => {
-                let raw_line = line;
-                // add the input to our REPL history
-                rl.add_history_entry(raw_line.clone());
-
-                // parse the command
-                let command = Command::new(raw_line.clone());
-
-                // handle REPL commands and exit if we need to
-                let should_exit = handle_command(&mut core, command);
-                if should_exit {
-                    break;
-                }
-            },
-            Err(_) => {
-                break;
-            }
-        }
-    }
-
-    // save our REPL history to a file
-    rl.save_history("./.engine-history.txt").unwrap();
+    // // get historical data from database using custom query
+    // let result = client.get_historical_data(query).unwrap();
 }

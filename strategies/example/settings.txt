@@ -1,7 +1,4 @@
 datasets=NYSE_SPY
-interval=1m
-exchange=NYSE
-symbol=SPY
 rsi_periods=14
 rsi_buy_threshold=30
 rsi_sell_threshold=70
