@@ -5,35 +5,60 @@
 
 use std::{fs::{File, read_to_string, OpenOptions}, io::{Error, BufReader, BufWriter, Write}};
 
-pub struct FileSystem {}
+pub struct FileSystem {
+    pub cwd: String,
+}
 
 impl FileSystem {
+    
     // connect to the filesystem starting at a given path
     pub fn connect() -> FileSystem {
         FileSystem {
+            cwd: "./data".to_string()
         }
+    }
+
+    // set the current working directory
+    // will be applied to all filesystem operations
+    pub fn set_cwd(&mut self, path: String) {
+        self.cwd = path;
     }
 
     // get a file from the filesystem (all at once, into memory)
     pub fn read_file(&self, file_path: String) -> Result<String, Error> {
-        let contents = read_to_string(file_path).expect("Unable to read file");
+
+        let path = format!("{}/{}", self.cwd, file_path);
+
+        let contents = read_to_string(path).expect("Unable to read file");
 
         Ok(contents)
     }
 
     // create a read stream from the filesystem
-    pub fn read_stream(&self, file_path: String) -> BufReader<File> {
-        let file = File::open(file_path).expect("Unable to open file");
+    pub fn read_stream(&mut self, file_path: String) -> Result<BufReader<File>, Error> {
+        let mut path = format!("{}/{}", self.cwd, file_path);
 
-        BufReader::new(file)
+        match File::open(&mut path) {
+            Ok(file) => {
+                let mut file_stream = BufReader::new(file);
+                Ok(file_stream)
+            },
+            Err(e) => {
+                println!("Unable to open file \"{}\": {}", path, e);
+                
+                Err(e)
+            },
+        }
     }
 
     // write a file to the filesystem (all at once)
     pub fn write_file(&self, file_path: String, contents: String) -> Result<bool, Error> {
+        let path = format!("{}/{}", self.cwd, file_path);
+        
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(file_path.clone())
+            .open(path)
             .expect("Unable to open file");
 
         file.write_all(contents.as_bytes()).expect("Unable to write file");
@@ -43,7 +68,9 @@ impl FileSystem {
 
     // create a write stream to the filesystem
     pub fn write_stream(&self, file_path: String) -> BufWriter<File> {
-        let file = File::create(file_path).expect("Unable to create file");
+        let path = format!("{}/{}", self.cwd, file_path);
+
+        let file = File::create(path).expect("Unable to create file");
 
         BufWriter::new(file)
     }

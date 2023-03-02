@@ -9,7 +9,9 @@ pub struct LuaHook {
 impl LuaHook {
 
     // create a new rust hook called from within lua
-    pub fn new_external<F>(lua_ctx: &Context, name: &str, f: F) 
+    pub fn new_external(lua_ctx: &Context, name: &str, f: F)
+    // where
+        // F: FnMut(&Lua, MultiValue) -> Result<Value<'lua>> + 'static
     {
         let create_f_result = lua_ctx.create_function(f);
 

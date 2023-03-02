@@ -56,6 +56,7 @@ fn main() {
                 if should_exit {
                     break;
                 }
+                
             },
             Err(_) => {
                 break;
