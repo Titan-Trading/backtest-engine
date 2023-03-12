@@ -94,7 +94,7 @@ impl Query {
     }
 
     // starts the query with the database instance
-    pub fn start(mut self) -> Self {
+    pub fn start(self) -> Self {
 
         // get results from the database instance
         let query = self.clone();

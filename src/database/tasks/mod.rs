@@ -1,7 +1,7 @@
 pub mod read_chunk;
 pub mod write_chunk;
 pub mod consolidate;
-pub mod query;
+pub mod perform_query;
 
 
 pub trait Task {

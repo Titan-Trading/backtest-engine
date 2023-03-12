@@ -1,9 +1,9 @@
 use std::fs::File;
 use std::hash::{Hasher, Hash};
-use std::io::{Error, BufReader};
+use std::io::{Error,Write};
 use byteorder::BigEndian;
-use byteorder::ReadBytesExt;
-use super::field::{Field, FieldType};
+
+use super::header::RECORD_SIZE;
 
 
 // represents a single bar off a chart for a single symbol
@@ -40,68 +40,101 @@ impl Candlestick {
         }
     }
 
-    pub fn from_reader(reader: &mut BufReader<File>) -> Result<Self, Error> {
-        // detect the end of a file
-        let field_count_result = reader.read_u8(); // 1 byte
-        if field_count_result.is_err() {
-            return Err(Error::new(std::io::ErrorKind::UnexpectedEof, "unexpected end of file"));
-        }
+    // create a candlestick using a byte array buffer from the file
+    pub fn from_buffer(buffer: &mut Vec<u8>) -> Result<Self, Error> {
+        // define how big each field is
+        let offset_bytes = 9;
 
-        // read the number of fields from u8 - 6 fields
-        let field_count = field_count_result.unwrap();
-
+        // println!("buffer: {:?}", buffer);
+        
         // read the fields
         let mut fields = vec![];
-        for i in 0..field_count {
+        for i in 0..6 {
+            let buffer_index = if i == 0 { i } else { i * offset_bytes };
 
-            // read the length of the field
-            let length = reader.read_u8().unwrap(); // 1 byte
-            // println!("length: {}", length);
+            // println!("buffer index: {}", buffer_index);
 
             // read the field type
-            let field_type = reader.read_u8().unwrap(); // 1 byte
-            // println!("field_type: {}", field_type);
+            let field_type = buffer[buffer_index as usize]; // 1 byte
+
+            // println!("field type: {}", field_type);
 
             // read the original value
-            let original_value;
-            if field_type == 1 {
-                // read as i64
-                original_value = reader.read_i64::<BigEndian>().unwrap() as f64; // 8 bytes
+            let mut original_value = 0.0f64;
+            if field_type == 1u8 {
+                // read as i64  - 8 bytes
+                let mut i_buf: [u8; 8] = [0; 8];
+                i_buf.copy_from_slice(&buffer[buffer_index+1..buffer_index+9]);
+                let value = i64::from_be_bytes(i_buf);
+                original_value = value as f64;
             }
-            else if field_type == 2 {
-                // read as f64
-                original_value = reader.read_f64::<BigEndian>().unwrap(); // 8 bytes
+            else if field_type == 2u8 {
+                // read as f64 - 8 bytes
+                let mut f_buf: [u8; 8] = [0; 8];
+                f_buf.copy_from_slice(&buffer[buffer_index+1..buffer_index+9]);
+                original_value = f64::from_be_bytes(f_buf);
             }
             else {
-                panic!("invalid field type");
+                panic!("invalid field type: {}", field_type);
             }
 
-            // create a new field
-            let field = Field {
-                length,
-                field_type: match field_type {
-                    1 => FieldType::Int64,
-                    2 => FieldType::Float64,
-                    // 2 => FieldType::String,
-                    _ => panic!("invalid field type"),
-                },
-                original_value,
-            };
+            // println!("original value: {}", original_value);
 
             // add the field to the list
-            fields.push(field);
+            fields.push(original_value);
         }
 
-        // println!("fields: {:?}", fields[0].original_value as i32);
-
         Ok(Self {
-            timestamp: fields[0].original_value as i64,
-            open: fields[1].original_value,
-            high: fields[2].original_value,
-            low:  fields[3].original_value,
-            close: fields[4].original_value,
-            volume: fields[5].original_value,
+            timestamp: fields[0].round() as i64,
+            open: fields[1],
+            high: fields[2],
+            low: fields[3],
+            close: fields[4],
+            volume: fields[5],
         })
+    }
+
+    pub fn into_writer(&mut self, file_instance: &mut File) -> Result<bool, Error> {
+        // create buffer for header
+        let mut buffer = [0; RECORD_SIZE];
+
+        // write timestamp (1 type byte, 8 data bytes)
+        buffer[0] = 1u8; // file type
+        buffer[1..9].copy_from_slice(&self.timestamp.to_be_bytes()); // 8 bytes
+
+        // write open (1 type byte, 8 data bytes)
+        buffer[9] = 2u8; // field type
+        buffer[10..18].copy_from_slice(&self.open.to_be_bytes()); // 8 bytes
+
+        // write high (1 type byte, 8 data bytes)
+        buffer[18] = 2u8; // field type
+        buffer[19..27].copy_from_slice(&self.high.to_be_bytes()); // 8 bytes
+
+        // write low (1 type byte, 8 data bytes)
+        buffer[27] = 2u8; // field type
+        buffer[28..36].copy_from_slice(&self.low.to_be_bytes()); // 8 bytes
+
+        // write close (1 type byte, 8 data bytes)
+        buffer[36] = 2u8; // field type
+        buffer[37..45].copy_from_slice(&self.close.to_be_bytes()); // 8 bytes
+
+        // write volume (1 type byte, 8 data bytes)
+        buffer[45] = 2u8; // field type
+        buffer[46..54].copy_from_slice(&self.volume.to_be_bytes()); // 8 bytes
+
+        // write record buffer into file
+        let result = file_instance.write(&mut buffer);
+
+        // check if the write was successful
+        let bytes_written = match result {
+            Ok(bytes_written) => bytes_written,
+            Err(e) => return Err(e),
+        };
+
+        // flush the file
+        file_instance.flush()?;
+
+        Ok(bytes_written == RECORD_SIZE)
     }
 
     pub fn set_timestamp(&mut self, timestamp: i64) {

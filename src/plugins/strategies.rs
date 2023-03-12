@@ -1,10 +1,14 @@
 use std::{io::{Error, Read}, fs, collections::HashMap, any::Any};
-
-use rlua::{Lua, Function, Variadic, MultiValue, Context, FromLuaMulti};
-
+use rlua::{Lua, Function, Variadic, MultiValue, Context, FromLuaMulti, ToLuaMulti, Value};
 use crate::{models::{Order, Metric}, datasets::Dataset};
-
 use super::{indicators::Indicator, lua_hooks::LuaHook};
+
+enum SettingType {
+    Integer(i64),
+    Float(f64),
+    String(String),
+}
+
 
 // holds details about an available strategy plugin
 #[derive(Clone)]
@@ -52,31 +56,61 @@ impl Strategy {
         // create new Lua state
         let lua = Lua::new();
 
+        // setup lua environment
+        Self::setup_sandbox(&lua, lua_script.clone(), settings_clone).unwrap();
+
+        // verify that the lua script has the required functions
+        // start up lua context
+        // extract the settings required from the LUA script
+        // verify the required settings match up with the supplied settings from settings.txt
+        // perform initialization tests (run through some dummy data to see how the script responds)
+        // prepare synchronized datasets (by timestamp)
+
+        Strategy {
+            name: name,
+            lua_script_hash: "test".to_string(),
+            lua_state: lua,
+            indicators: HashMap::new(),
+            settings: settings,
+            datasets,
+            orders: Vec::new(),
+            pending_orders: Vec::new(),
+            metrics: None
+        }
+    }
+
+    // setup lua environment
+    fn setup_sandbox(lua: &Lua, lua_script: String, settings: HashMap<String, String>) -> Result<(), Error> {
+
+        // setup lua context
         // setup wrapper to control method calls from Rust into LUA or vice versa
         let lua_context = lua.context(|lua_ctx| {
-            /*let get_setting_handle = lua_ctx.create_function(move |_, (name, data_type, default_value): (String, String, String)| {
-                let value = match settings_clone.get(&name) {
+            let get_setting_handle = lua_ctx.create_function(move |_, (name, data_type, default_value): (String, String, String)| {
+                
+                /*let value = match settings.get(&name) {
                     Some(setting_value) => {
-                        let value = None;
-
-                        // TODO: parse the setting value to the correct type
-                        if data_type == "integer" {
-                            value = setting_value.parse::<i32>().unwrap();
-                        }
-                        else if data_type == "float" {
-                            value = setting_value.parse::<i32>().unwrap();
-                        }
-                        else if data_type == "string" {
-                            value = setting_value.parse::<String>().unwrap();
-                        }
+                        let value: Option<SettingType> = match data_type.as_str() {
+                            "integer" => {
+                                let parsed_value = setting_value.parse::<i64>().unwrap();
+                                Ok(SettingType::Integer(parsed_value))
+                            },
+                            "float" => {
+                                let parsed_value = setting_value.parse::<f64>().unwrap();
+                                Ok(SettingType::Float(parsed_value))
+                            },
+                            "string" => {
+                                let parsed_value = setting_value.parse::<String>().unwrap();
+                                return Ok(Value::(parsed_value))
+                            },
+                            _ => Err(format!("Invalid data type {} for setting {}", data_type, name)),
+                        };
 
                         value.unwrap()
                     },
-                    None => {
-                        ""
-                    }
-                };
-                let setting_value = settings_clone.get(&name).unwrap();
+                    None => panic!("Invalid setting name {}", name),
+                };*/
+
+                /*let setting_value = settings_clone.get(&name).unwrap();
 
                 match (data_type.as_str(), setting_value) {
                     ("integer", value) if value.parse::<i64>().is_ok() => {
@@ -98,25 +132,25 @@ impl Strategy {
                         Ok(string_value)
                     },
                     _ => Err(format!("Invalid data type {} for setting {}", data_type, name)),
-                }
+                }*/
 
-                Ok(())
-            }).unwrap();*/
+                Ok(true)
+            }).unwrap();
    
 
             // create a rust hook to be called from with lua script
-            LuaHook::new_external(&lua_ctx, "get_setting", |_, (name, data_type, default_value): (String, String, String)| {Ok(1)});
-            LuaHook::new_external(&lua_ctx, "indicator", |_, (name, periods, interval, symbol): (String, i32, String, String)| {
-                // check if indicator is already created
-                // create new indicator and add to indicator list
-                // - backpropagate up to 300 of the latest candles (so our values are up-to-date)
-                // get latest indicator values
+            // LuaHook::new_external(&lua_ctx, "get_setting", |_, (name, data_type, default_value): (String, String, String)| {Ok(1)});
+            // LuaHook::new_external(&lua_ctx, "indicator", |_, (name, periods, interval, symbol): (String, i32, String, String)| {
+            //     // check if indicator is already created
+            //     // create new indicator and add to indicator list
+            //     // - backpropagate up to 300 of the latest candles (so our values are up-to-date)
+            //     // get latest indicator values
 
-                Ok(1)
-            });
-            LuaHook::new_external(&lua_ctx, "get_position", |_, (exchange, symbol): (String, String)| {Ok(1)});
-            LuaHook::new_external(&lua_ctx, "execute_market_order", |_, (exchange, symbol, quantity, side): (String, String, f64, String)| {Ok(1)});
-            LuaHook::new_external(&lua_ctx, "execute_limit_order", |_, (exchange, symbol, price, quantity, side): (String, String, f64, f64, String)| {Ok(1)});
+            //     Ok(1)
+            // });
+            // LuaHook::new_external(&lua_ctx, "get_position", |_, (exchange, symbol): (String, String)| {Ok(1)});
+            // LuaHook::new_external(&lua_ctx, "market_order", |_, (exchange, symbol, quantity, side): (String, String, f64, String)| {Ok(1)});
+            // LuaHook::new_external(&lua_ctx, "limit_order", |_, (exchange, symbol, price, quantity, side): (String, String, f64, f64, String)| {Ok(1)});
 
             let result = lua_ctx.load(&lua_script.clone()).exec();
             if let Err(e) = result {
@@ -128,29 +162,16 @@ impl Strategy {
             let test_value: (String, String, String, i32, f64, f64, f64, f64);
             
             // called on new bar
-            LuaHook::call(&lua_ctx, "on_bar", MultiValue::from(test_value));
+            // LuaHook::call(&lua_ctx, "on_bar", MultiValue::from(test_value));
+
             // called on order update
-            LuaHook::call(&lua_ctx, "on_order", MultiValue::new());
+            // LuaHook::call(&lua_ctx, "on_order", MultiValue::new());
         });
 
-        // verify that the lua script has the required functions
-        // start up lua context
-        // extract the settings required from the LUA script
-        // verify the required settings match up with the supplied settings from settings.txt
-        // perform initialization tests (run through some dummy data to see how the script responds)
-        // prepare synchronized datasets (by timestamp)
+        // setup lua hooks
+        // setup lua functions
 
-        Strategy {
-            name: name,
-            lua_script_hash: "test".to_string(),
-            lua_state: lua,
-            indicators: HashMap::new(),
-            settings: settings,
-            datasets,
-            orders: Vec::new(),
-            pending_orders: Vec::new(),
-            metrics: None
-        }
+        Ok(())
     }
 
     // 

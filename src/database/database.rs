@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::Error;
-use super::{engine::DatabaseEngine, models::{query::Query, query_result::QueryResult, bar::Bar}};
+use super::{engine::DatabaseEngine, models::{query::Query, query_result::QueryResult, candlestick::Candlestick}};
 
 // Database struct. It is used to represent the database system and all of its clients.
 // we support the stmdb file format
@@ -46,8 +46,7 @@ impl Database {
     }
 
     // inserts data into the database
-    pub fn insert(&self, client_id: u64, data: Vec<Bar>) -> Result<bool, Error> {
-        // Ok(self.engine.insert(client_id, data))
-        Ok(true)
+    pub fn insert(&mut self, client_id: u64,exchange: String, symbol: String, data: Vec<Candlestick>) -> Result<bool, Error> {
+        Ok(self.engine.insert(client_id, exchange, symbol, data).unwrap())
     }
 }

@@ -1,13 +1,14 @@
-use std::{sync::{Mutex, Arc}, collections::HashMap, time::Instant};
+use std::{sync::{Arc, Mutex}, collections::HashMap, time::Instant, fs::File};
 use crossbeam::channel::Sender;
-use crate::database::{models::{barset::BarSet, candlestick::Candlestick, bar::Bar}, tasks::read_chunk::ReadChunkTask, storage::Reader, threads::ThreadPool};
+
+use crate::database::{models::{barset::BarSet, candlestick::Candlestick, bar::Bar}, tasks::read_chunk::ReadChunkTask, threads::ThreadPool};
 use super::Task;
 
 
 // query task - starts the tasks for reading file chunks, synchronizing the data, and consolidating the data
 pub struct QueryTask {
     thread_pool: Arc<ThreadPool>,
-    channel: Arc<Sender<BarSet>>,
+    channel: Arc<Mutex<Sender<BarSet>>>,
     files: Vec<String>,
     limit: i32,
     start_timestamp: i64,
@@ -18,7 +19,7 @@ impl QueryTask {
     // create a new query task
     pub fn new(
         thread_pool: Arc<ThreadPool>,
-        channel: Arc<Sender<BarSet>>,
+        channel: Arc<Mutex<Sender<BarSet>>>,
         files: Vec<String>,
         start_timestamp: i64,
         end_timestamp: i64,
@@ -49,6 +50,9 @@ impl Task for QueryTask {
             page_count += 1;
         }
 
+        // create a channel for each page to send the bars back to the query task
+        let mut receivers = HashMap::new();
+
         println!("thread.tasks.query: start timestamp: {}", self.start_timestamp);
         println!("thread.tasks.query: end timestamp: {}", self.end_timestamp);
         println!("thread.tasks.query: total bars: {}", total_bars);
@@ -58,16 +62,26 @@ impl Task for QueryTask {
         // loop through all the pages using the start_timestamp and the end_timestamp
         // setup all pages before waiting for results on any page
         // create a read chunk task for each file
-        let mut receivers = HashMap::new();
+        let mut readers = HashMap::new();
+
+        // loop through all the files to create file descriptors before starting the read chunk tasks
+        for filename in self.files.iter() {
+            // create a new descriptor for the file
+            let file = File::open(filename).unwrap();
+
+            // add the file instance to the files map
+            readers.insert(filename.to_string(), file.try_clone().unwrap());
+        }
+
         for page in 0..page_count {
-            println!("thread.tasks.query: page {}", page);
+            println!("thread.tasks.query: page {}", page + 1);
 
             // loop through all the files for the query
             for filename in self.files.iter() {
                 let start = Instant::now();
 
-                // create a new reader for the file
-                let reader = Reader::new(filename.to_string());
+                // get the reader for the file
+                let reader = readers.get(filename).unwrap();
 
                 // create a channel for the read chunk task to send the bars back to the query task
                 let (sender, receiver) = crossbeam::channel::unbounded();
@@ -76,17 +90,22 @@ impl Task for QueryTask {
 
                 // create a new read chunk task
                 let offset = page * page_size;
-                let mut read_task = ReadChunkTask::new(Arc::clone(&channel), filename.to_string(), reader, page_size as i32, offset as i32);
+                let mut read_task = ReadChunkTask::new(Arc::clone(&channel), filename.clone(), reader.try_clone().unwrap(), page_size, offset);
 
                 // start the read chunk task
                 let filename_thread = filename.clone().to_string();
-                self.thread_pool.execute(move || {
-                    read_task.execute(Some(Box::new(move |result: bool| {
-                        println!("thread.tasks.query: read chunk task {} finished in {}ms", filename_thread, (start.elapsed().as_nanos() as f64 / 1_000_000.0));
-                    })));
-                });
+
+                // self.thread_pool.execute(move || {
+                //     read_task.execute(None);
+                // });
+                
+                // execute the read chunk task
+                read_task.execute(Some(Box::new(move |result: bool| {
+                    println!("thread.tasks.query: read chunk task {} finished in {}ms", filename_thread, (start.elapsed().as_nanos() as f64 / 1_000_000.0));
+                })));
             }
-        }
+        };
+        
 
         for page in 0..page_count {
             let mut file_bars: HashMap<String, Vec<Candlestick>> = HashMap::new();
@@ -164,7 +183,7 @@ impl Task for QueryTask {
             }
 
             // send the barset back to the main thread
-            match self.channel.send(barset) {
+            match self.channel.lock().unwrap().send(barset) {
                 Ok(_) => {
                     // println!("thread.tasks.query: barsets sent to main thread");
                 },

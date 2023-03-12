@@ -1,7 +1,6 @@
 pub mod index;
 pub mod header;
 pub mod chunk;
-pub mod field;
 pub mod exchange;
 pub mod symbol;
 pub mod candlestick;

@@ -6,20 +6,20 @@ local rsi_sell_threshold = input("rsi_sell_threshold", "integer", 70)
 local quantity           = input("order_quantity", "float", 100)
 
 -- change environment settings
-env("logging", "true")                       -- will log events (orders, errors, any print calls) to file
-env("data_integrity_checks", "false")          -- will stop if any data integrity issues are detected
-env("data_missing_mode", "smoothing")        -- will smooth out any gaps in the data as best as it can
-env("history_limit", "300")                    -- set the max number of historic data to track
-env("intervals", "3m,5m,10m,30m") -- can optionally consolidate candles to multiple timeframes (default 1m)
+env("logging", "true")                 -- will log events (orders, errors, any print calls) to file
+env("data_integrity_checks", "false")  -- will stop if any data integrity issues are detected
+env("data_missing_mode", "smoothing")  -- will smooth out any gaps in the data as best as it can
+env("history_limit", "300")            -- set the max number of historic data to track
+env("intervals", "3m,5m,10m,30m")      -- can optionally consolidate candles to multiple timeframes (default 1m)
 
-local iRSI = indicator("rsi", 14, "5m", "SPY", "NYSE")
-local iEMA = indicator("ema", 14, "5m", "SPY", "NYSE")
-print(iRSI:val())
-print(dump(iRSI:history(100)))
+-- local iRSI = indicator("rsi", 14, "5m", "SPY", "NYSE")
+-- local iEMA = indicator("ema", 14, "5m", "SPY", "NYSE")
+-- print(iRSI:val())
+-- print(dump(iRSI:history(100)))
 -- print((iRSI + iEMA):crossover("up")) :FUTURE
 
 -- when a new bar of data is received
--- passes through the current bar and a list of up to 300 of the latest bars
+-- passes through the current bar and a history list of up to 300 of the latest bars
 function on_bar(bar, history)
     -- bar will have exchange, symbol, interval, timestamp, open, high, low, close, volume
     local exchange  = bar["exchange"]  -- the exchange the bar is coming from
@@ -58,6 +58,7 @@ function on_bar(bar, history)
             ["type"] = "market",
             ["quantity"] = quantity,
             ["side"] = "sell"
+            -- ["limit_price"] = "100.00"
         })
     end
 
@@ -65,9 +66,9 @@ function on_bar(bar, history)
     -- other commands we can send
     -- "insight" - log some market insight
 
-    print("on_bar executed")
-    print(dump(bar['open']))
-    print(dump(history['open'][1]))
+    -- print("on_bar executed")
+    -- print(dump(bar['open']))
+    -- print(dump(history['open'][1]))
 
 
     -- we let the system know our signal is good

@@ -30,6 +30,10 @@ impl BarMap {
             self.bars.insert(key_copy, candlestick);
         }
     }
+
+    pub fn by_symbol(&self, exchange: String, symbol: String) -> Option<&Candlestick> {
+        self.bars.get(&(exchange, symbol))
+    }
 }
 
 impl Hash for BarMap {

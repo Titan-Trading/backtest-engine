@@ -1,7 +1,7 @@
-use std::{io::{BufReader, ErrorKind}, fs::File};
+use std::{io::{Read}, fs::File};
 use std::io::Error;
-use super::{bar::Bar, candlestick::Candlestick, barset::BarSet};
 
+use super::candlestick::Candlestick;
 
 pub struct Chunk {
     pub candlesticks: Vec<Candlestick>,
@@ -23,23 +23,33 @@ impl Chunk {
     }
 
     // read a chunk from a reader
-    pub fn from_reader(reader: &mut BufReader<File>, limit: i32, offset: i32) -> Result<Self, Error> {
+    pub fn from_file(file: &mut File, limit: i64) -> Result<Self, Error> {
         // create a new chunk
         let mut chunk: Vec<Candlestick> = Vec::new();
 
-        // seek to the offset
-        let bytes_per_record = 61;
-        match reader.seek_relative(offset as i64 * bytes_per_record as i64) {
-            Ok(_) => {},
-            Err(e) => {
-                return Err(Error::new(ErrorKind::Other, format!("failed to seek to offset: {}", e)));
-            }
-        }
+        // create a buffer from the file
+        // each record is 54 bytes and each chunk is 1000 records then a chunk buffer is ~5.4kb 
+        let mut chunk_buffer = vec![0;54 * limit as usize];
+        let file = file;
+        file.read(&mut chunk_buffer).unwrap();
 
-        // read the chunk
-        for _ in 0..limit {
-            // read a bar from the reader
-            match Candlestick::from_reader(reader) {
+        // read the chunk 0 to 999 records
+        for record_index in 0..limit {
+
+            // get a range of certain bytes from the buffer
+            let record_start_index = record_index as usize * 54;
+            let record_end_index = (record_index as usize + 1) * 54;
+
+            // if the record is empty then break
+            if chunk_buffer[record_start_index] == 0 {
+                break;
+            }
+
+            // create a buffer for the candlestick
+            let mut candle_buffer = chunk_buffer[record_start_index..record_end_index].to_vec();
+
+            // read a candlestick from the reader
+            match Candlestick::from_buffer(&mut candle_buffer) {
                 Ok(bar) => {
                     // add the bar to the chunk
                     chunk.push(bar);

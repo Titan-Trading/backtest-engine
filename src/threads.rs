@@ -26,7 +26,7 @@ impl ThreadManager {
         }
     }
 
-    // state a named thread using a closure
+    // start a named thread using a closure
     pub fn start<F>(&mut self, name: String, f: F) -> bool
     where
         F: Fn() + Send + 'static,
