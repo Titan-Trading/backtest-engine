@@ -53,6 +53,8 @@ enum ScriptType {
     Indicator,
 }
 
+
+
 pub struct Script {
     name: String,
     lua: Arc<Mutex<Lua>>,
