@@ -88,6 +88,11 @@ impl DatabaseEngine {
         }
     }
 
+    // get the database index
+    pub fn get_index(&self) -> DatabaseIndex {
+        self.index.clone()
+    }
+
     // query the database for bars
     pub fn start_query(&mut self, client_id: u64, query: Query) -> Result<QueryResult, Error> {
         

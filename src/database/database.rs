@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::Error;
-use super::{engine::DatabaseEngine, models::{query::Query, query_result::QueryResult, candlestick::Candlestick}};
+use super::{engine::DatabaseEngine, models::{query::Query, query_result::QueryResult, candlestick::Candlestick, index::DatabaseIndex}};
 
 // Database struct. It is used to represent the database system and all of its clients.
 // we support the stmdb file format
@@ -31,6 +31,11 @@ impl Database {
     // removes a client connection from the database
     pub fn disconnect_client(&mut self, client_id: u64) {
         self.clients.retain(|id| *id != client_id);
+    }
+
+    // get the database index
+    pub fn get_index(&mut self) -> Result<DatabaseIndex, Error> {
+        Ok(self.engine.get_index())
     }
 
     // gets historical data from the database using a query and fill cache

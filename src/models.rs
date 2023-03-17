@@ -1,5 +1,6 @@
 
 
+#[derive(Clone)]
 pub enum OrderStatus {
     Submitted,
     PartiallyFilled,
@@ -7,16 +8,19 @@ pub enum OrderStatus {
     Invalid,
 }
 
+#[derive(Clone)]
 pub enum OrderSide {
     Buy,
     Sell
 }
 
+#[derive(Clone)]
 pub enum OrderType {
     Limit,
     Market
 }
 
+#[derive(Clone)]
 pub struct Order {
     pub exchange: String,
     pub symbol: String,
@@ -30,7 +34,7 @@ pub struct Order {
     pub price: f64,
 }
 
-
+#[derive(Clone)]
 pub struct Metric<T> {
     pub name: String,
     pub value: T

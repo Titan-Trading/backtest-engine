@@ -1,2 +1,2 @@
-datasets_path=datasets
-strategies_path=strategies
+indicators_path=scripts/indicators
+strategies_path=scripts/strategies

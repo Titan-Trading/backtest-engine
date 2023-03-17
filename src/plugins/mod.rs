@@ -1,3 +1,4 @@
+pub mod lua_hooks;
+pub mod script;
 pub mod indicators;
 pub mod strategies;
-pub mod lua_hooks;

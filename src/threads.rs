@@ -5,7 +5,9 @@
 // - join main thread with child threads so that all the children stop before the main thread
 // - send or receive messages to or from a thread
 
-use std::{thread, sync::{Mutex, Arc}, time::Duration, collections::HashMap};
+use std::{thread, sync::{Mutex, Arc, MutexGuard}, time::Duration, collections::HashMap};
+
+use mlua::Lua;
 
 #[derive(Clone, Copy)]
 pub enum ThreadState {
@@ -34,13 +36,18 @@ impl ThreadManager {
         let state = Arc::new(Mutex::new(ThreadState::Running));
         let state_clone = state.clone();
 
-        thread::spawn(move || {
-            loop {
-                match *state_clone.lock().unwrap() {
-                    ThreadState::Running => f(),
-                    ThreadState::Paused => thread::sleep(Duration::from_millis(10)),
-                    ThreadState::Stopped => break,
-                }
+        thread::spawn(move || loop {
+            match *state_clone.lock().unwrap() {
+                // thread is running so execute the closure and continue the loop
+                ThreadState::Running => {
+                    f();
+                },
+                // thread has been paused so sleep for 10ms and continue loop
+                ThreadState::Paused => {
+                    thread::sleep(Duration::from_millis(10));
+                },
+                // thread has been stopped so break out of the loop
+                ThreadState::Stopped => break,
             }
         });
 

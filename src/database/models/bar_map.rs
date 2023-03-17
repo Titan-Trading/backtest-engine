@@ -1,5 +1,5 @@
 use std::{collections::HashMap, hash::{Hash, Hasher}};
-use super::{bar::Bar, candlestick::Candlestick};
+use super::candlestick::Candlestick;
 
 
 // represents a map of a single candlestick by exchange and symbol

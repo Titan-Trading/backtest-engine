@@ -33,10 +33,12 @@ function on_bar(bar)
     -- If RSI is below 30 and we don't have a position, buy
     if rsi < 30 and not get_position("EURUSD") then
         execute_market_order("EURUSD", 0.01, "buy")
-
+    end
     -- If RSI is above 70 and we have a position, sell
     if rsi > 70 and get_position("EURUSD") then
         execute_market_order("EURUSD", 0.01, "sell")
+    end
 
     print("on_bar")
+
 end
