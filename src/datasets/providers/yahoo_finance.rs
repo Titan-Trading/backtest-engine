@@ -1,7 +1,7 @@
 use std::io::Error;
 use yahoo_finance::{history, Interval};
 use crate::{utils::rest::Client, database::models::candlestick::Candlestick};
-use super::DataProvideable;
+use super::{DataProvideable, DataSource};
 
 pub struct YahooFinanceResponse {
     pub data: Vec<Candlestick>,
@@ -31,7 +31,7 @@ impl DataProvideable for YahooFinance {
     }
 
     // searches to see if there's data for the exchange and symbol on yahoo finance
-    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<bool, Error> {
+    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<DataSource>, Error> {
         // let url = format!("https://query1.finance.yahoo.com/v8/finance/chart/{}?interval=1m&range=1000&includePrePost=false&events=div%7Csplit%7Cearn&lang=en-US&region=US&corsDomain=finance.yahoo.com", symbol);
         // let mut response = self.client.get(&url).unwrap();
         // let body = response.text();
@@ -51,11 +51,13 @@ impl DataProvideable for YahooFinance {
         //     res = history::retrieve_range(&symbol, start_datetime, None);
         // }
 
-        Ok(false)
+        let data_sources: Vec<DataSource> = Vec::new();
+
+        Ok(data_sources)
     }
 
     // gets data from yahoo finance api
-    fn download(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<Candlestick>, Error> {
+    fn download(&self, data_source_id: i32) -> Result<Vec<Candlestick>, Error> {
         // let url = format!("https://query1.finance.yahoo.com/v8/finance/chart/{}?interval=1m&range=1000&includePrePost=false&events=div%7Csplit%7Cearn&lang=en-US&region=US&corsDomain=finance.yahoo.com", symbol);
         // let mut response = self.client.get(&url).unwrap();
         // let body = response.text();

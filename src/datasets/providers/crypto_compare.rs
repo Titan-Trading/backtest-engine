@@ -2,7 +2,7 @@ use std::io::Error;
 
 use crate::{utils::rest::Client, database::models::candlestick::Candlestick};
 
-use super::DataProvideable;
+use super::{DataProvideable, DataSource};
 
 
 pub struct CryptoCompareResponse {
@@ -31,7 +31,7 @@ impl DataProvideable for CryptoCompare {
     }
 
     // searches for data on cryptocompare.com
-    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<bool, Error> {
+    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<DataSource>, Error> {
         // let url = format!("https://min-api.cryptocompare.com/data/v2/histominute?e={}&fsym={}&tsym=USD&limit=1000&api_key={}", exchange, symbol, self.api_key);
         // let mut response = self.client.get(&url).unwrap();
         // let body = response.text();
@@ -43,11 +43,18 @@ impl DataProvideable for CryptoCompare {
 
         // Ok(vec![data.Data.Data[0].time.to_string()])
 
-        Ok(true)
+        // outputs an indexed list of data sources
+        // data source ids can be used to download data
+        // ex: 1 -> Yahoo Finance - AAPL - 1m - 2019-01-01-2019-01-02
+        // ex: 2 -> Google Finance - AAPL - 1m - 2019-01-01-2019-01-02
+
+        let mut data_sources: Vec<DataSource> = Vec::new();
+
+        Ok(data_sources)
     }
 
     // gets data from cryptocompare.com
-    fn download(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<Candlestick>, Error> {
+    fn download(&self, data_source_id: i32) -> Result<Vec<Candlestick>, Error> {
         // let url = format!("https://min-api.cryptocompare.com/data/v2/histominute?e={}&fsym={}&tsym=USD&limit=1000&toTs={}&api_key={}", exchange, symbol, end_timestamp, self.api_key);
         // let mut response = self.client.get(&url).unwrap();
         // let body = response.text();

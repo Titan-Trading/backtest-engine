@@ -1,7 +1,7 @@
 use std::io::Error;
 use chrono::Utc;
 use crate::{database::models::candlestick::Candlestick, utils::rest::Client};
-use super::DataProvideable;
+use super::{DataProvideable, DataSource};
 
 
 pub struct CryptoDataDownload {
@@ -24,7 +24,7 @@ impl DataProvideable for CryptoDataDownload {
     }
 
     // search for exchange and symbol
-    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<bool, Error> {
+    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<DataSource>, Error> {
         // let url = format!("https://www.cryptodatadownload.com/cdd/{}_{}_{}_minute.csv", exchange, symbol, Utc.timestamp(start_timestamp, 0).year());
         // let mut response = self.client.get(&url).unwrap();
         // let body = response.text();
@@ -52,11 +52,13 @@ impl DataProvideable for CryptoDataDownload {
 
         // println!("{:?}", candlesticks);
 
-        Ok(true)
+        let data_sources: Vec<DataSource> = Vec::new();
+
+        Ok(data_sources)
     }
 
     // gets data from cryptodatadownload api
-    fn download(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<Candlestick>, Error> {
+    fn download(&self, data_source_id: i32) -> Result<Vec<Candlestick>, Error> {
         // get all the years that span the start_timestamp and end_timestamp
         // let mut years: Vec<i32> = Vec::new();
         // let mut year = start_timestamp;

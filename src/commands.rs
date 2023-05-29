@@ -1,4 +1,4 @@
-use crate::{system::Core, datasets::data_provider::DataProviderManager};
+use crate::{system::Core, datasets::data_provider::DataProviderRepository};
 
 
 pub enum CommandType {
@@ -39,7 +39,12 @@ impl Command {
         let mut command_type: CommandType = CommandType::Unsupported;
         let mut command_params: Vec<String> = Vec::new();
 
-        // general commands
+        // parse params
+        let params: Vec<&str> = raw_input.split_whitespace().collect();
+
+        //////////////////////
+        // general commands //
+        //////////////////////
         if raw_input == "help" {
             command_type = CommandType::Help;
         }
@@ -50,10 +55,11 @@ impl Command {
             command_type = CommandType::ReloadPlugins;
         }
 
-        // list commands
+        ///////////////////
+        // list commands //
+        ///////////////////
         else if raw_input.starts_with("list") {
-            let params: Vec<&str> = raw_input.split_whitespace().collect();
-
+            // list types: datasets, indicators, strategies
             if params.len() == 2 {
                 let list_type = params[1];
 
@@ -69,13 +75,13 @@ impl Command {
             }
         }
 
-        // data commands
+        ///////////////////
+        // data commands //
+        ///////////////////
         else if raw_input.starts_with("search") {
-            let params: Vec<&str> = raw_input.split_whitespace().collect();
-
             if params.len() == 3 {
-                let exchange = params[1];
-                let symbol = params[2];
+                let exchange = params[1]; // ex: binance
+                let symbol = params[2];   // ex: BTCUSDT
 
                 command_type = CommandType::SearchData;
                 command_params.push(String::from(exchange));
@@ -83,22 +89,23 @@ impl Command {
             }
         }
         else if raw_input.starts_with("download") {
-            let params: Vec<&str> = raw_input.split_whitespace().collect();
-
-            if params.len() == 3 {
-                let exchange = params[1];
-                let symbol = params[2];
+            if params.len() == 2 {
+                let data_source_id = params[1];
 
                 command_type = CommandType::DownloadData;
-                command_params.push(String::from(exchange));
-                command_params.push(String::from(symbol));
+                command_params.push(String::from(data_source_id));
             }
         }
 
-        // strategy commands
-        else if raw_input.starts_with("status") || raw_input.starts_with("start") || raw_input.starts_with("stop") || raw_input.starts_with("pause") || raw_input.starts_with("resume") {
-            let params: Vec<&str> = raw_input.split_whitespace().collect();
-
+        ///////////////////////
+        // strategy commands //
+        ///////////////////////
+        else if 
+            raw_input.starts_with("status")
+            || raw_input.starts_with("start")
+            || raw_input.starts_with("stop")
+            || raw_input.starts_with("pause")
+            || raw_input.starts_with("resume") {
             if params.len() == 2 {
                 let command_action = String::from(params[0]);
                 let thread_name = String::from(params[1]);
@@ -134,7 +141,7 @@ impl Command {
 // handle commands coming from REPL input
 pub fn handle_command(core: &mut Core, command: Command) -> bool {
 
-    let mut data_providers = DataProviderManager::new();
+    let mut data_providers = DataProviderRepository::new();
 
     // perform different actions based on command type
     match command.command_type {
@@ -198,21 +205,11 @@ pub fn handle_command(core: &mut Core, command: Command) -> bool {
             );
         },
         CommandType::DownloadData => {
-            let provider_index = command.params.get(0).unwrap();
-            let exchange = command.params.get(1).unwrap();
-            let symbol = command.params.get(2).unwrap();
-            let start_timestamp = command.params.get(3).unwrap();
-            let end_timestamp = command.params.get(4).unwrap();
+            let data_source_id = command.params.get(0).unwrap();
 
-            let result = data_providers.download(
-                provider_index.clone(),
-                exchange.clone(),
-                symbol.clone(),
-                start_timestamp.clone().parse::<i64>().unwrap(),
-                Some(end_timestamp.clone().parse::<i64>().unwrap())
-            );
+            let result = data_providers.download(data_source_id.clone().parse::<i32>().unwrap());
 
-            println!("Downloading data for {} - {}", exchange, symbol);
+            println!("Downloading data for {}", data_source_id);
         },
 
         // strategy commands

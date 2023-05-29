@@ -1,7 +1,7 @@
 use std::io::Error;
 use crate::{database::models::candlestick::Candlestick, utils::rest::Client};
 
-use super::DataProvideable;
+use super::{DataProvideable, DataSource};
 
 
 pub struct GoogleFinance {
@@ -24,17 +24,19 @@ impl DataProvideable for GoogleFinance {
     }
 
     // searches google finance api for exchange and symbol
-    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<bool, Error> {
+    fn search(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<DataSource>, Error> {
         // let url = format!("https://www.google.com/finance/historical?q={}.{}&startdate=Jan+1%2C+2010&enddate=Dec+31%2C+2018&output=csv", symbol, exchange);
         // let mut response = self.client.get(&url).unwrap();
         // let body = response.text();
         // let mut candlesticks: Vec<Candlestick> = Vec::new();
 
-        Ok(false)
+        let data_sources: Vec<DataSource> = Vec::new();
+
+        Ok(data_sources)
     }
 
     // gets data from google finance api
-    fn download(&self, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<Candlestick>, Error> {
+    fn download(&self, data_source_id: i32) -> Result<Vec<Candlestick>, Error> {
         // let url = format!("https://www.google.com/finance/historical?q={}.{}&startdate=Jan+1%2C+2010&enddate=Dec+31%2C+2018&output=csv", symbol, exchange);
         // let mut response = self.client.get(&url).unwrap();
         // let body = response.text();

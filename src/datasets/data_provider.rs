@@ -8,11 +8,11 @@ use super::providers::google_finance::GoogleFinance;
 use super::providers::yahoo_finance::YahooFinance;
 
 
-pub struct DataProviderManager {
+pub struct DataProviderRepository {
     pub data_providers: Vec<Box<dyn DataProvideable>>,
 }
 
-impl DataProviderManager {
+impl DataProviderRepository {
     pub fn new() -> Self {
 
         // load data providers from config file
@@ -42,15 +42,15 @@ impl DataProviderManager {
     }
 
     // download data from data provider
-    pub fn download(&self, provider_name: String, exchange: String, symbol: String, start_timestamp: i64, end_timestamp: Option<i64>) -> Result<Vec<String>, Error> {
+    pub fn download(&self, data_source_id: i32) -> Result<Vec<String>, Error> {
 
         // loop through each data provider
         for provider in &self.data_providers {
             // if name == &provider_name {
                 // make http request to data provider
-                println!("Downloading {} - {} from {}", symbol, exchange, provider.name());
+                println!("Downloading from {}", &data_source_id);
 
-                provider.download(exchange.clone(), symbol.clone(), start_timestamp, end_timestamp);
+                provider.download(data_source_id);
             // }
         }
 
