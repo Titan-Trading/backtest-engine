@@ -1,4 +1,4 @@
-use std::{sync::{Arc}, io::{Seek, SeekFrom, ErrorKind, Error}, fs::File};
+use std::{sync::{Arc}, io::{Seek, SeekFrom}, fs::File};
 use crossbeam::channel::Sender;
 use crate::database::{models::{candlestick::Candlestick}, storage::reader::Reader};
 use super::Task;
@@ -66,6 +66,18 @@ impl Task for ReadChunkTask {
         // call the on exit callback
         if let Some(callback) = on_exit {
             callback(true);
+        }
+    }
+
+    // close the file handle
+    fn close(&mut self) {
+        match self.file_handle.sync_all() {
+            Ok(_) => {
+                println!("thread.tasks.read_chunk: file handle closed");
+            },
+            Err(e) => {
+                println!("thread.tasks.read_chunk: error closing file handle: {}", e);
+            }
         }
     }
 }

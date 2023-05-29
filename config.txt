@@ -1,2 +1,2 @@
-indicators_path=scripts/indicators
-strategies_path=scripts/strategies
+indicators_path=plugins/indicators
+strategies_path=plugins/strategies

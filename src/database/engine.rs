@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Instant, Duration};
 use std::{sync::Arc, collections::HashMap};
-use std::io::{Error, SeekFrom, Seek, ErrorKind};
+use std::io::{Error, SeekFrom, Seek};
 use chrono::Utc;
 use crossbeam::channel::{Receiver, Sender, unbounded};
 use uuid::Uuid;
@@ -52,7 +52,7 @@ impl DatabaseEngine {
         let cache = Arc::new(Mutex::new(InMemoryCache::new()));
 
         // create an index of the files in the database
-        let index =DatabaseIndex::new(index_filename, root_data_dir.clone());
+        let index = DatabaseIndex::new(index_filename, root_data_dir.clone());
 
         DatabaseEngine {
             path: root_data_dir,
@@ -131,7 +131,7 @@ impl DatabaseEngine {
         let query_filenames = filenames.clone();
         let query_cache = cache.clone();
         self.thread_pool.execute(move || {
-            println!("thread.query: starting query");
+            println!("thread.query: starting query task for query {}", query_id_task);
             let start = Instant::now();
 
             // create a new query task
@@ -154,10 +154,10 @@ impl DatabaseEngine {
 
             // wait for results on the channel in a loop until there are none left
             println!("thread.query: waiting for results");
-            while let Ok(results) = receiver_channel.try_recv() {
+            while let Ok(results) = receiver_channel.recv() {
                 let barset = results;
 
-                // println!("thread.query: got results: {:?}", results.bars.get(100).unwrap());
+                // println!("thread.query: got results: {:?}", results);
 
                 // try to get the lock on the cache
                 let mut cache = query_cache.lock().unwrap();
@@ -218,6 +218,14 @@ impl DatabaseEngine {
         }
 
         Ok(QueryResult::new_with(query_id, "running".to_string(), vec![]))
+    }
+
+    // end a query
+    pub fn stop_query(&mut self, query_id: String) -> Result<bool, Error> {
+        // remove the task channel from the task channels hashmap
+        self.task_channels.remove(&query_id);
+
+        Ok(true)
     }
 
     // insert data into the database

@@ -1,10 +1,9 @@
 use std::fs::File;
 use std::hash::{Hasher, Hash};
 use std::io::{Error,Write};
-use byteorder::BigEndian;
 
-use super::header::RECORD_SIZE;
 
+pub const RECORD_SIZE: usize = 54; // 54 bytes
 
 // represents a single bar off a chart for a single symbol
 #[derive(Debug, Clone, PartialEq)]
@@ -135,30 +134,6 @@ impl Candlestick {
         file_instance.flush()?;
 
         Ok(bytes_written == RECORD_SIZE)
-    }
-
-    pub fn set_timestamp(&mut self, timestamp: i64) {
-        self.timestamp = timestamp;
-    }
-
-    pub fn set_open(&mut self, open: f64) {
-        self.open = open;
-    }
-
-    pub fn set_high(&mut self, high: f64) {
-        self.high = high;
-    }
-
-    pub fn set_low(&mut self, low: f64) {
-        self.low = low;
-    }
-
-    pub fn set_close(&mut self, close: f64) {
-        self.close = close;
-    }
-
-    pub fn set_volume(&mut self, volume: f64) {
-        self.volume = volume;
     }
 }
 

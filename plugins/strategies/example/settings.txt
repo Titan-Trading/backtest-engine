@@ -1,0 +1,8 @@
+datasets=Kucoin:USDT-BTC,KuCoin:USDT-ADA,KuCoin:USDT-DASH
+intervals=5m,15m,2h
+start_date=2010-01-01
+end_date=2023-01-01
+rsi_periods=14
+rsi_buy_threshold=30
+rsi_sell_threshold=70
+order_quantity=100

@@ -5,8 +5,8 @@ use super::candlestick::Candlestick;
 // represents a map of a single candlestick by exchange and symbol
 #[derive(Clone, Debug, PartialEq)]
 pub struct BarMap {
-    // map of exchange and symbol to list of candlestick
-    pub bars: HashMap<(String, String), Candlestick>,
+    // map of exchange, symbol and interval to list of candlestick
+    pub bars: HashMap<(String, String, String), Candlestick>,
 }
 
 impl BarMap {
@@ -16,23 +16,24 @@ impl BarMap {
         }
     }
 
-    pub fn new_with(bars: HashMap<(String, String), Candlestick>) -> Self {
+    pub fn new_with(bars: HashMap<(String, String, String), Candlestick>) -> Self {
         Self {
             bars,
         }
     }
 
-    pub fn insert(&mut self, key: (String, String), candlestick: Candlestick) {
+    pub fn insert(&mut self, key: (String, String, String), candlestick: Candlestick) {
         let key_copy = key.clone();
         let exchange = key.0;
         let symbol = key.1;
+        let interval = key.2;
         if !self.bars.contains_key(&key_copy) {
             self.bars.insert(key_copy, candlestick);
         }
     }
 
-    pub fn by_symbol(&self, exchange: String, symbol: String) -> Option<&Candlestick> {
-        self.bars.get(&(exchange, symbol))
+    pub fn get(&self, exchange: String, symbol: String, interval: String) -> Option<&Candlestick> {
+        self.bars.get(&(exchange, symbol, interval))
     }
 }
 

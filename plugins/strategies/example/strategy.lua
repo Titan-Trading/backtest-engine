@@ -4,11 +4,16 @@ local rsi_buy_threshold  = input("rsi_buy_threshold", "integer", 30)
 local rsi_sell_threshold = input("rsi_sell_threshold", "integer", 70)
 local quantity           = input("order_quantity", "float", 100.0)
 
+print("periods: " .. rsi_periods)
+print("buy threshold: " .. rsi_buy_threshold)
+print("sell threshold: " .. rsi_sell_threshold)
+print("quantity: " .. quantity)
+
 -- change environment settings
-env("logging", true)                         -- will log events (orders, errors, any print calls) to file
-env("data_integrity_checks", false)          -- will stop if any data integrity issues are detected
-env("data_missing_mode", "smoothing")        -- will smooth out any gaps in the data as best as it can
-env("history_limit", 300)                    -- set the max number of historic data to track
+--env("logging", true)                         -- will log events (orders, errors, any print calls) to file
+--env("data_integrity_checks", false)          -- will stop if any data integrity issues are detected
+--env("data_missing_mode", "smoothing")        -- will smooth out any gaps in the data as best as it can
+--env("history_limit", 300)                    -- set the max number of historic data to track
 --env("intervals", {"3m", "5m", "10m", "30m"}) -- can optionally consolidate candles to multiple timeframes (default 1m)
 
 -- when a new bar of data is received

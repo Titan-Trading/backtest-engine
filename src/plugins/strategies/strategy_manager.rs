@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::{Mutex, Arc, RwLock}};
+use std::{collections::HashMap};
 use std::io::Error;
 use super::strategy::Strategy;
 
@@ -24,10 +24,11 @@ impl StrategyManager {
     }
 
     pub fn get(&self, strategy_name: &String) -> Result<&Strategy, Error> {
-        // let strategy = strategy.lock().unwrap();
+        let strategy = self.strategies.get(strategy_name);
+        if let Some(strategy) = strategy {
+            return Ok(strategy);
+        }
 
-        let strategy = self.strategies.get(strategy_name).unwrap();
-
-        Ok(strategy)
+        Err(Error::new(std::io::ErrorKind::Other, "Strategy not found"))
     }
 }

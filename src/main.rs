@@ -19,25 +19,25 @@ fn main() {
     let config_path = std::env::args().nth(1).unwrap_or("config.txt".to_string());
 
     // Read the config file into a Config struct
-    let config = utils::read_config(config_path);
+    let config = utils::config::read_config(config_path);
 
     // create a REPL editor using rustyline
     let mut rl = Editor::<()>::new().unwrap();
 
     // load REPL history
     if rl.load_history("./.engine-history.txt").is_err() {
-        println!("No history found");
+        // println!("No history found");
     }
 
     // Print the welcome message
-    println!("-----------------------------------------------------------------");
-    println!("Trade Engine version 0.1 (type 'exit' to quit or 'help' for help)");
-    println!("-----------------------------------------------------------------");
+    println!("-------------------------------------------------------------------------");
+    println!("--- Trade Engine version 0.1 (type 'exit' to quit or 'help' for help) ---");
+    println!("-------------------------------------------------------------------------");
 
     // create a core system
     let mut core = Core::new(&config.clone());
 
-    // initialize the system by load plugins
+    // initialize the system by loading plugins
     core.initialize();
 
     // update loop

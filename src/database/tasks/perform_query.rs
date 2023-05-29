@@ -7,6 +7,7 @@ use super::Task;
 
 // query task - starts the tasks for reading file chunks, synchronizing the data, and consolidating the data
 pub struct QueryTask {
+    stop_flag: bool,
     thread_pool: Arc<ThreadPool>,
     channel: Arc<Mutex<Sender<BarSet>>>,
     files: Vec<String>,
@@ -26,6 +27,7 @@ impl QueryTask {
         limit: i32
     ) -> Self {
         Self {
+            stop_flag: false,
             thread_pool,
             channel,
             files,
@@ -76,6 +78,12 @@ impl Task for QueryTask {
         for page in 0..page_count {
             println!("thread.tasks.query: page {}", page + 1);
 
+            // check if stop flag has been set
+            if self.stop_flag {
+                println!("thread.tasks.query: stop flag set, stopping query");
+                break;
+            }
+
             // loop through all the files for the query
             for filename in self.files.iter() {
                 let start = Instant::now();
@@ -109,6 +117,12 @@ impl Task for QueryTask {
 
         for page in 0..page_count {
             let mut file_bars: HashMap<String, Vec<Candlestick>> = HashMap::new();
+
+            // check if stop flag has been set
+            if self.stop_flag {
+                println!("thread.tasks.query: stop flag set, stopping query");
+                break;
+            }
             
             // loop through all files to get the read chunk tasks results
             for filename in self.files.iter() {
@@ -197,5 +211,9 @@ impl Task for QueryTask {
         if let Some(on_exit) = on_exit {
             on_exit(true);
         }
+    }
+
+    fn close(&mut self) {
+        self.stop_flag = true;
     }
 }

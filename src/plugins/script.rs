@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::io::{Error, ErrorKind};
-use mlua::{Lua, Value, Function as LuaFunction, FromLuaMulti, MultiValue, Result as LuaResult, ToLuaMulti, Error as LuaError};
+use std::marker::PhantomData;
+use rlua::{Lua, Value, Function as LuaFunction, FromLuaMulti, MultiValue, Result as LuaResult, ToLuaMulti, Error as LuaError, Context};
 use super::lua_hooks::LuaHook;
 
 
-#[derive(Debug, Clone)]
+/*#[derive(Debug, Clone)]
 enum EnvironmentVariableType {
     Boolean(bool),
     Integer(i64),
@@ -37,7 +38,7 @@ impl<'lua> ToLuaMulti<'lua> for EnvironmentVariableType {
             EnvironmentVariableType::String(s) => Ok(MultiValue::from_vec(vec![Value::String(lua.create_string(&s).unwrap())])),
         }
     }
-}
+}*/
 
 // different types of settings that can be used in a strategy
 #[derive(Debug, Clone)]
@@ -75,170 +76,174 @@ impl Script {
         let mut lua = self.lua.lock().unwrap();
         let settings = self.settings.clone();
 
-        match script_type {
-            ScriptType::Strategy => {
-                // setup the lua hooks for the strategy
-                // get setting values from settings.txt and pass into strategy
-                let available_settings = settings.clone();
-                LuaHook::new_external(&lua, "input", move |(name, data_type, default_value): (String, String, String)| {
-                    // check if setting is available
-                    let value = match available_settings.get(&name) {
-                        Some(setting_value) => {
-                            // setting is available, use the value from settings.txt
-                            let value: Option<SettingType> = match data_type.as_str() {
-                                "boolean" => {
-                                    let parsed_value = setting_value.parse::<bool>().unwrap();
-                                    Some(SettingType::Boolean(parsed_value))
-                                },
-                                "integer" => {
-                                    let parsed_value = setting_value.parse::<i64>().unwrap();
-                                    Some(SettingType::Integer(parsed_value))
-                                },
-                                "float" => {
-                                    let parsed_value = setting_value.parse::<f64>().unwrap();
-                                    Some(SettingType::Float(parsed_value))
-                                },
-                                "string" => {
-                                    let parsed_value = setting_value.parse::<String>().unwrap();
-                                    Some(SettingType::String(parsed_value))
-                                },
-                                _ => {
-                                    panic!("Invalid data type {} - {}", data_type, name);
-                                },
-                            };
-
-                            value.unwrap()
-                        },
-                        None => {
-                            // setting is not available, use the default value
-                            let value: Option<SettingType> = match data_type.as_str() {
-                                "boolean" => {
-                                    let parsed_value = default_value.parse::<bool>().unwrap();
-                                    Some(SettingType::Boolean(parsed_value))
-                                },
-                                "integer" => {
-                                    let parsed_value = default_value.parse::<i64>().unwrap();
-                                    Some(SettingType::Integer(parsed_value))
-                                },
-                                "float" => {
-                                    let parsed_value = default_value.parse::<f64>().unwrap();
-                                    Some(SettingType::Float(parsed_value))
-                                },
-                                "string" => {
-                                    let parsed_value = default_value.parse::<String>().unwrap();
-                                    Some(SettingType::String(parsed_value))
-                                },
-                                _ => {
-                                    panic!("Invalid data type {} - {}", data_type, name);
-                                },
-                            };
-
-                            value.unwrap()
+        lua.context(|lua_ctx| {
+            // load the script into the lua context
+            match script_type {
+                ScriptType::Strategy => {
+                    // setup the lua hooks for the strategy
+                    // get setting values from settings.txt and pass into strategy
+                    let available_settings = settings.clone();
+                    LuaHook::new_external(&lua_ctx, "input", move |(name, data_type, default_value): (String, String, String)| {
+                        // check if setting is available
+                        let value = match available_settings.get(&name) {
+                            Some(setting_value) => {
+                                // setting is available, use the value from settings.txt
+                                let value: Option<SettingType> = match data_type.as_str() {
+                                    "boolean" => {
+                                        let parsed_value = setting_value.parse::<bool>().unwrap();
+                                        Some(SettingType::Boolean(parsed_value))
+                                    },
+                                    "integer" => {
+                                        let parsed_value = setting_value.parse::<i64>().unwrap();
+                                        Some(SettingType::Integer(parsed_value))
+                                    },
+                                    "float" => {
+                                        let parsed_value = setting_value.parse::<f64>().unwrap();
+                                        Some(SettingType::Float(parsed_value))
+                                    },
+                                    "string" => {
+                                        let parsed_value = setting_value.parse::<String>().unwrap();
+                                        Some(SettingType::String(parsed_value))
+                                    },
+                                    _ => {
+                                        panic!("Invalid data type {} - {}", data_type, name);
+                                    },
+                                };
+    
+                                value.unwrap()
+                            },
+                            None => {
+                                // setting is not available, use the default value
+                                let value: Option<SettingType> = match data_type.as_str() {
+                                    "boolean" => {
+                                        let parsed_value = default_value.parse::<bool>().unwrap();
+                                        Some(SettingType::Boolean(parsed_value))
+                                    },
+                                    "integer" => {
+                                        let parsed_value = default_value.parse::<i64>().unwrap();
+                                        Some(SettingType::Integer(parsed_value))
+                                    },
+                                    "float" => {
+                                        let parsed_value = default_value.parse::<f64>().unwrap();
+                                        Some(SettingType::Float(parsed_value))
+                                    },
+                                    "string" => {
+                                        let parsed_value = default_value.parse::<String>().unwrap();
+                                        Some(SettingType::String(parsed_value))
+                                    },
+                                    _ => {
+                                        panic!("Invalid data type {} - {}", data_type, name);
+                                    },
+                                };
+    
+                                value.unwrap()
+                            }
+                        };
+    
+                        println!("get input setting: {} {} {:?}", name, data_type, value);
+    
+                        Ok(true)
+                    });
+    
+                    // allows the strategy to set certain environment settings
+                    LuaHook::new_external(&lua_ctx, "env", |(name, value): (String, String)| {
+                        // check if setting is available
+                        println!("set environment setting: {} {:?}", name, value);
+                        // set setting value
+    
+    
+    
+                        Ok(true)
+                    });
+    
+                    // allows strategy to setup/get an indicator instance
+                    LuaHook::new_external(&lua_ctx, "indicator", |(name, periods, interval, symbol): (String, i32, String, String)| {
+                        // check if indicator is already created
+                        // create new indicator and add to indicator list
+                        // - backpropagate up to 300 of the latest candles, if available (so our values are up-to-date)
+                        // get latest indicator values
+                        // return indicator values back to lua script
+    
+    
+    
+                        Ok(1)
+                    });
+    
+                    // allows strategy to check if there is a position open
+                    LuaHook::new_external(&lua_ctx, "has_position", |(exchange, symbol): (String, String)| {
+                        // check if there is a position open for the given exchange and symbol
+                        // return true or false back to lua script
+    
+                        
+    
+                        Ok(1)
+                    });
+    
+                    // allows strategy ability to tell system to execute a command
+                    LuaHook::new_external(&lua_ctx, "command", |(command_id, params): (String, ())| {
+                        // check if command is valid
+                        // execute command
+                        // return true or false back to lua script
+    
+                        if command_id == "order" {
+                            println!("order command");
                         }
-                    };
-
-                    println!("get input setting: {} {} {:?}", name, data_type, value);
-
-                    Ok(true)
-                });
-
-                // allows the strategy to set certain environment settings
-                LuaHook::new_external(&lua, "env", |(name, value): (String, EnvironmentVariableType)| {
-                    // check if setting is available
-                    println!("set environment setting: {} {:?}", name, value);
-                    // set setting value
-
-
-
-                    Ok(true)
-                });
-
-                // allows strategy to setup/get an indicator instance
-                LuaHook::new_external(&lua, "indicator", |(name, periods, interval, symbol): (String, i32, String, String)| {
-                    // check if indicator is already created
-                    // create new indicator and add to indicator list
-                    // - backpropagate up to 300 of the latest candles, if available (so our values are up-to-date)
-                    // get latest indicator values
-                    // return indicator values back to lua script
-
-
-
-                    Ok(1)
-                });
-
-                // allows strategy to check if there is a position open
-                LuaHook::new_external(&lua, "has_position", |(exchange, symbol): (String, String)| {
-                    // check if there is a position open for the given exchange and symbol
-                    // return true or false back to lua script
-
-                    
-
-                    Ok(1)
-                });
-
-                // allows strategy ability to tell system to execute a command
-                LuaHook::new_external(&lua, "command", |(command_id, params): (String, ())| {
-                    // check if command is valid
-                    // execute command
-                    // return true or false back to lua script
-
-                    if command_id == "order" {
-                        println!("order command");
-                    }
-                    else if command_id == "insight" {
-                        println!("insight command");
-                    }
-                    else {
-                        println!("unknown command");
-                    }
-
-                    Ok(1)
-                });
-            },
-            ScriptType::Indicator => {
-                // setup the lua hooks for the indicator
-            },
-            _ => {
-                println!("Unknown script type");
+                        else if command_id == "insight" {
+                            println!("insight command");
+                        }
+                        else {
+                            println!("unknown command");
+                        }
+    
+                        Ok(1)
+                    });
+                },
+                ScriptType::Indicator => {
+                    // setup the lua hooks for the indicator
+                },
+                _ => {
+                    println!("Unknown script type");
+                }
             }
-        }
 
-        // load the script into the lua context
-        let result = lua
-            .load(&script)
-            .set_name(&self.name)
-            .unwrap()
-            .exec();
-        if let Err(e) = &result {
-            println!("Error loading lua script: {}", e);
+            // load the script into the lua context
+            let result = lua_ctx
+                .load(&script)
+                .set_name(&self.name)
+                .unwrap()
+                .exec();
+            if let Err(e) = &result {
+                println!("Error loading lua script: {}", e);
 
-            return Err(Error::new(ErrorKind::Other, "Error loading lua script"));
-        }
+                return Err(Error::new(ErrorKind::Other, "Error loading lua script"));
+            }
+
+            Ok(true)
+        });
 
         Ok(true)
     }
 
     // execute a function in the lua context
-    pub fn exec(&mut self, function_name: String, args: Vec<Value>) -> Result<Value, Error> {
+    pub fn exec(&mut self, function_name: String, args: Vec<Value<'_>>) -> Result<Value<'_>, Error> {
         let lua = self.lua.lock().unwrap();
 
-        let lock_result = lua.globals().get(function_name).clone();
-        if let Err(e) = lock_result {
-            println!("Error getting lua function: {}", e);
+        let result: Value<'static> = lua.context(|lua_ctx| {
+            let call_result: Result<Value<'_>, Error> = LuaHook::call(&Box::new(lua_ctx), &function_name, args).map_err(|e| {
+                println!("Error executing lua script: {}", e);
 
-            return Err(Error::new(ErrorKind::Other, "Error getting lua function"));
-        }
-        let func: LuaFunction = lock_result.unwrap();
+                Error::new(ErrorKind::Other, "Error executing lua script")
+            });
 
-        let call_result = func.call::<_, Value>(args);
-        if let Err(e) = call_result {
-            println!("Error executing lua script: {}", e);
+            if let Err(e) = call_result {
+                return Err(e);
+            }
 
-            return Err(Error::new(ErrorKind::Other, "Error executing lua script"));
-        }
-        let result = call_result.unwrap();
-        let ret_result = result.clone();
+            let ret_result: Value<'_> = call_result.unwrap();
 
-        Ok(ret_result)
+            Ok(ret_result.into_static())
+        }).unwrap();
+
+        Ok(result)
     }
 }

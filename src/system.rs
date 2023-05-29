@@ -1,7 +1,6 @@
-use std::{collections::HashMap, thread::JoinHandle};
-use mlua::Lua;
+use std::{collections::HashMap, thread::JoinHandle, cell::RefCell};
 
-use crate::{utils::Config, threads::ThreadManager, plugins::{indicators::{indicator_plugin::{IndicatorPlugin, load_indicator_plugins}}, strategies::{strategy_plugin::{StrategyPlugin, load_strategy_plugins}, strategy::Strategy, strategy_manager::StrategyManager}}, datasets::dataset::{load_datasets, Dataset}, database::{database::Database, models::index::Corpus}};
+use crate::{utils::config::Config, threads::ThreadManager, plugins::{indicators::{indicator_plugin::{IndicatorPlugin, load_indicator_plugins}}, strategies::{strategy_plugin::{StrategyPlugin, load_strategy_plugins}, strategy::Strategy, strategy_manager::StrategyManager}}, datasets::dataset::load_datasets, database::{database::Database, models::index::Corpus}};
 
 
 pub struct Core {
@@ -69,48 +68,47 @@ impl Core {
         let strategy_settings = strategy_plugin.settings.clone();
         let strategy_script = strategy_plugin.lua_script.clone();
 
-        // use strategy plugin's settings to put together a list of datasets
-        let mut datasets = HashMap::new();
-        let datasets_string = strategy_settings.get("datasets").unwrap();
-        let datasets_parts: Vec<&str> = datasets_string.split(",").collect();
-        for dataset_name in datasets_parts {
-            let name = dataset_name.to_string();
-            let dataset = Dataset::new(name.clone());
-            datasets.insert(name, dataset);
-        }
-
-        let strategies = self.strategies.clone();
+        let strategies = RefCell::new(self.strategies.clone());
 
         // check if the strategy thread is stopped
-        // if it is not, return false
+        // if it is stopped start a new thread
         let state = self.thread_manager.get_state(strategy_name.clone());
         if state == "stopped" {
-
-            let lua = Lua::new();
-
+            // start thread
+            println!("Starting strategy thread");
             let is_started = self.thread_manager.start(strategy_name.clone(), move || {
-                println!("inside strategy thread, implement LUA and loop through datasets");
+                let mut strategies = strategies.borrow_mut();
 
-                // check if strategy is already running
-                // if strategies.get(&strategy_name).is_err() {
-                //     println!("Strategy already running");
+                // get strategy from list of running strategies
+                let strategy_result = strategies.get(&strategy_name);
+                
+                // if strategy is not running, create and initialize it
+                let mut strategy = match strategy_result {
+                    Ok(strategy) => strategy.clone(),
+                    Err(_) => {
+                        println!("Strategy not running");
                     
-                //     // create and initialize strategy
-                //     let strategy = Strategy::new(
-                //         strategy_name.clone(),
-                //         strategy_script.clone(),
-                //         strategy_settings.clone(),
-                //         datasets.clone()
-                //     );
-                // }
+                        // create and initialize strategy
+                        let mut strategy = Strategy::new(
+                            strategy_name.clone(),
+                            strategy_script.clone(),
+                            strategy_settings.clone()
+                        );
+                        strategy.initialize();
 
-                // load up LUA script
-                // setup synchronized datasets stream
+                        // add strategy to list of running strategies
+                        strategies.add(&strategy_name.clone(), strategy.clone());
+
+                        // return strategy
+                        strategy.clone()
+                    }
+                };
+
                 // start loop through each iteration
                 // track orders
                 // output orders
                 // output performance metrics
-                // strategy.run();
+                strategy.start();
 
             });
 

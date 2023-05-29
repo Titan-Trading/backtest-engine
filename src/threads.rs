@@ -1,13 +1,11 @@
+use std::{thread, sync::{Mutex, Arc}, time::Duration, collections::HashMap};
+
 
 // basic thread management
 // - stop, start, pause and resume threads
 // - handle errors from within threads
 // - join main thread with child threads so that all the children stop before the main thread
 // - send or receive messages to or from a thread
-
-use std::{thread, sync::{Mutex, Arc, MutexGuard}, time::Duration, collections::HashMap};
-
-use mlua::Lua;
 
 #[derive(Clone, Copy)]
 pub enum ThreadState {

@@ -6,7 +6,6 @@ use byteorder::{BigEndian, ByteOrder};
 // constants
 const IDENTIFIER: &str = "STMDB";
 const HEADER_SIZE: usize = 24; // 24 bytes
-pub const RECORD_SIZE: usize = 54; // 54 bytes
 
 pub struct Header {
     pub identifier: String, // STMDB (4 bytes)

@@ -1,5 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
-use mlua::Lua;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
+use rlua::Lua;
 use crate::{database::models::bar::Bar, datasets::dataset::Dataset};
 
 
@@ -7,7 +7,8 @@ use crate::{database::models::bar::Bar, datasets::dataset::Dataset};
 #[derive(Clone)]
 pub struct Indicator {
     pub name: String,
-    pub lua_state: Arc<Lua>,
+    pub lua_script_hash: String,
+    pub lua_state: Arc<Mutex<Lua>>,
     pub settings: HashMap<String, String>,
     pub datasets: HashMap<String, Dataset>,
 }
@@ -21,7 +22,7 @@ impl Indicator {
     ) -> Indicator {
 
         // setup wrapper to control method calls from Rust into LUA or vice versa
-        let lua = Arc::new(Lua::new());
+        let lua = Arc::new(Mutex::new(Lua::new()));
 
         // verify that the lua script has the required functions
         // start up lua context
@@ -32,6 +33,7 @@ impl Indicator {
 
         Indicator {
             name: name,
+            lua_script_hash: "TEST".to_string(),
             lua_state: lua,
             settings: settings,
             datasets

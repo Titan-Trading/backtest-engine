@@ -1,7 +1,8 @@
 use std::{io::{Read}, fs::File};
 use std::io::Error;
 
-use super::candlestick::Candlestick;
+use super::candlestick::{Candlestick, RECORD_SIZE};
+
 
 pub struct Chunk {
     pub candlesticks: Vec<Candlestick>,
@@ -29,7 +30,7 @@ impl Chunk {
 
         // create a buffer from the file
         // each record is 54 bytes and each chunk is 1000 records then a chunk buffer is ~5.4kb 
-        let mut chunk_buffer = vec![0;54 * limit as usize];
+        let mut chunk_buffer = vec![0;RECORD_SIZE * limit as usize];
         let file = file;
         file.read(&mut chunk_buffer).unwrap();
 
@@ -37,8 +38,8 @@ impl Chunk {
         for record_index in 0..limit {
 
             // get a range of certain bytes from the buffer
-            let record_start_index = record_index as usize * 54;
-            let record_end_index = (record_index as usize + 1) * 54;
+            let record_start_index = record_index as usize * RECORD_SIZE;
+            let record_end_index = (record_index as usize + 1) * RECORD_SIZE;
 
             // if the record is empty then break
             if chunk_buffer[record_start_index] == 0 {

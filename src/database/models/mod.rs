@@ -8,4 +8,5 @@ pub mod bar;
 pub mod barset;
 pub mod bar_map;
 pub mod query;
+pub mod query_builder;
 pub mod query_result;

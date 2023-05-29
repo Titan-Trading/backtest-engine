@@ -6,7 +6,7 @@ use super::{bar_map::BarMap, candlestick::Candlestick};
 pub struct Bar {
     pub timestamp: i64,
 
-    // map of exchange and symbol to candlestick
+    // map of exchange, symbol, interval to candlestick
     pub candlesticks: BarMap,
 }
 
@@ -26,19 +26,21 @@ impl Bar {
     }
 
     // add a candlestick to the bar using the source id as the key
-    // example source id would be "binance:BTCUSDT"
-    pub fn add_candlestick(&mut self, source_id: String, candlestick: Candlestick) {
-        let key = source_id.split(":").collect::<Vec<&str>>();
+    // example key would be "binance:BTCUSDT:1m"
+    pub fn add_candlestick(&mut self, key: String, candlestick: Candlestick) {
+        let key = key.split(":").collect::<Vec<&str>>();
         let exchange = key[0].to_string();
         let symbol = key[1].to_string();
-        self.candlesticks.insert((exchange, symbol), candlestick);
+        let interval = key[2].to_string();
+        self.candlesticks.insert((exchange, symbol, interval), candlestick);
     }
 
     // check if the bar has a candlestick for the source id
-    pub fn has_candlestick(&self, source_id: String) -> bool {
-        let key = source_id.split(":").collect::<Vec<&str>>();
+    pub fn has_candlestick(&self, key: String) -> bool {
+        let key = key.split(":").collect::<Vec<&str>>();
         let exchange = key[0].to_string();
         let symbol = key[1].to_string();
-        self.candlesticks.bars.contains_key(&(exchange, symbol))
+        let interval = key[2].to_string();
+        self.candlesticks.bars.contains_key(&(exchange, symbol, interval))
     }
 }

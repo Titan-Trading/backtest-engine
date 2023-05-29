@@ -37,9 +37,11 @@ impl Config {
 // read a config file and return a Config struct
 pub fn read_config(path: String) -> Config {
     let mut config = Config::new("datasets".to_string(), "indicators".to_string(), "strategies".to_string());
+
     let mut file = fs::File::open(path).unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
+
     for line in contents.lines() {
         let mut parts = line.splitn(2, '=');
         let key = parts.next().unwrap();
@@ -52,9 +54,11 @@ pub fn read_config(path: String) -> Config {
 // read a csv file and return a Vec of Vec of f64
 pub fn read_data(path: String) -> Vec<Vec<f64>> {
     let mut data = Vec::new();
+
     let mut file = fs::File::open(path).unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
+    
     for line in contents.lines().skip(1) {
         let mut row = Vec::new();
         for value in line.split(',') {
